@@ -164,6 +164,7 @@ function ImageUpload() {
                                     <td>
                                         <button
                                             data-index={index}
+                                            disabled={loading}
                                             onClick={handleOnDeleteFileButtonClick}
                                         >
                                             Excluir
