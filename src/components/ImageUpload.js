@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 
 function ImageUpload() {
     const [images, setImages] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     const a4PaperDimensions = useRef({
         a4PaperWidth: 210,
@@ -74,31 +75,37 @@ function ImageUpload() {
     };
 
     const generatePdfFromImages = images => {
-        const doc = new jsPDF();
-        const { a4PaperWidth, a4PaperHeight } = getA4PaperDimensions();
+        return new Promise(resolve => {
+            const doc = new jsPDF();
+            const { a4PaperWidth, a4PaperHeight } = getA4PaperDimensions();
 
-        doc.deletePage(1);
+            doc.deletePage(1);
 
-        images.forEach(image => {
-            const imageDimensions = imageDimensionsOnA4({
-                width: image.width,
-                height: image.height,
+            images.forEach(image => {
+                const imageDimensions = imageDimensionsOnA4({
+                    width: image.width,
+                    height: image.height,
+                });
+
+                doc.addPage();
+                doc.addImage(
+                    image.data,
+                    image.type,
+                    (a4PaperWidth - imageDimensions.width) / 2,
+                    (a4PaperHeight - imageDimensions.height) / 2,
+                    imageDimensions.width,
+                    imageDimensions.height
+                );
             });
 
-            doc.addPage();
-            doc.addImage(
-                image.data,
-                image.type,
-                (a4PaperWidth - imageDimensions.width) / 2,
-                (a4PaperHeight - imageDimensions.height) / 2,
-                imageDimensions.width,
-                imageDimensions.height
-            );
+            const fileReader = new FileReader();
+
+            fileReader.onload = event => {
+                resolve(event.target.result);
+            };
+
+            fileReader.readAsDataURL(doc.output('blob'));
         });
-
-        console.log(doc.output('blob'));
-
-        window.open(doc.output('bloburl'), '_blank');
     };
 
     const handleOnInputFileChange = event => {
@@ -110,6 +117,8 @@ function ImageUpload() {
     };
 
     const handleOnSendFilesButtonClick = () => {
+        setLoading(true);
+
         const readFilesPromises = [];
 
         for (let i = 0; i < images.length; i++) {
@@ -117,7 +126,16 @@ function ImageUpload() {
         }
 
         Promise.all(readFilesPromises).then(files => {
-            generatePdfFromImages(files);
+            generatePdfFromImages(files).then(base64PDF => {
+                const downloadLink = document.createElement('a');
+
+                downloadLink.href = base64PDF; //TODO: chamar endpoint para gravar o base64
+                downloadLink.download = 'Files.pdf';
+
+                downloadLink.click();
+
+                setLoading(false);
+            });
         });
     };
 
@@ -168,14 +186,17 @@ function ImageUpload() {
                 }}
                 onChange={handleOnInputFileChange}
             />
-            <button onClick={handleOnSelectFilesButtonClick}>
+            <button
+                disabled={loading}
+                onClick={handleOnSelectFilesButtonClick}
+            >
                 Selecionar Arquivos
             </button>
             <button
-                disabled={images.length === 0}
+                disabled={images.length === 0 || loading}
                 onClick={handleOnSendFilesButtonClick}
             >
-                Enviar Arquivos
+                {loading ? 'Enviando...' : 'Enviar Arquivos'}
             </button>
         </div>
     );
