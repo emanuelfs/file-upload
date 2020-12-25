@@ -1,20 +1,22 @@
-import React, { createRef, useState } from 'react';
+import React, { createRef, useState, useRef } from 'react';
 import jsPDF from 'jspdf';
 
 function ImageUpload() {
-    const A4_PAPER_DIMENSIONS = {
-        width: 210,
-        height: 297,
-    };
-
-    const A4_PAPER_RATIO = A4_PAPER_DIMENSIONS.width / A4_PAPER_DIMENSIONS.height;
-
     const [images, setImages] = useState([]);
 
-    const inputRef = createRef(null);
+    const a4PaperDimensions = useRef({
+        a4PaperWidth: 210,
+        a4PaperHeight: 297,
+    });
 
-    const getInputRef = () => {
-        return inputRef.current;
+    const inputFileRef = createRef(null);
+
+    const getA4PaperDimensions = () => {
+        return a4PaperDimensions.current;
+    };
+
+    const getInputFileRef = () => {
+        return inputFileRef.current;
     };
 
     const readImage = file => {
@@ -42,20 +44,22 @@ function ImageUpload() {
 
     const imageDimensionsOnA4 = dimensions => {
         const isLandscapeImage = dimensions.width >= dimensions.height;
+        const { a4PaperWidth, a4PaperHeight } = getA4PaperDimensions();
 
         if (isLandscapeImage) {
             return {
-                width: A4_PAPER_DIMENSIONS.width,
+                width: a4PaperWidth,
                 height:
-                    A4_PAPER_DIMENSIONS.width / (dimensions.width / dimensions.height),
+                    a4PaperWidth / (dimensions.width / dimensions.height),
             };
         }
 
         const imageRatio = dimensions.width / dimensions.height;
+        const a4PaperRatio = a4PaperWidth / a4PaperHeight;
 
-        if (imageRatio > A4_PAPER_RATIO) {
-            const imageScaleFactor = (A4_PAPER_RATIO * dimensions.height) / dimensions.width;
-            const scaledImageHeight = A4_PAPER_DIMENSIONS.height * imageScaleFactor;
+        if (imageRatio > a4PaperRatio) {
+            const imageScaleFactor = (a4PaperRatio * dimensions.height) / dimensions.width;
+            const scaledImageHeight = a4PaperHeight * imageScaleFactor;
 
             return {
                 height: scaledImageHeight,
@@ -64,13 +68,14 @@ function ImageUpload() {
         }
 
         return {
-            width: A4_PAPER_DIMENSIONS.height / (dimensions.height / dimensions.width),
-            height: A4_PAPER_DIMENSIONS.height
+            width: a4PaperHeight / (dimensions.height / dimensions.width),
+            height: a4PaperHeight
         };
     };
 
     const generatePdfFromImages = images => {
         const doc = new jsPDF();
+        const { a4PaperWidth, a4PaperHeight } = getA4PaperDimensions();
 
         doc.deletePage(1);
 
@@ -84,8 +89,8 @@ function ImageUpload() {
             doc.addImage(
                 image.data,
                 image.type,
-                (A4_PAPER_DIMENSIONS.width - imageDimensions.width) / 2,
-                (A4_PAPER_DIMENSIONS.height - imageDimensions.height) / 2,
+                (a4PaperWidth - imageDimensions.width) / 2,
+                (a4PaperHeight - imageDimensions.height) / 2,
                 imageDimensions.width,
                 imageDimensions.height
             );
@@ -131,7 +136,7 @@ function ImageUpload() {
                 </table>
             }
             <input
-                ref={inputRef}
+                ref={inputFileRef}
                 multiple
                 type='file'
                 accept='image/png, image/jpeg'
@@ -144,7 +149,7 @@ function ImageUpload() {
             />
             <button
                 onClick={() => {
-                    getInputRef().click();
+                    getInputFileRef().click();
                 }}
             >
                 Selecionar Arquivos
