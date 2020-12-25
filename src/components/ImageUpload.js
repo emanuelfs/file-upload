@@ -101,6 +101,34 @@ function ImageUpload() {
         window.open(doc.output('bloburl'), '_blank');
     };
 
+    const handleOnInputFileChange = event => {
+        setImages([...images.concat(Array.from(event.target.files))]);
+    };
+
+    const handleOnSelectFilesButtonClick = () => {
+        getInputFileRef().click();
+    };
+
+    const handleOnSendFilesButtonClick = () => {
+        const readFilesPromises = [];
+
+        for (let i = 0; i < images.length; i++) {
+            readFilesPromises.push(readImage(images[i]));
+        }
+
+        Promise.all(readFilesPromises).then(files => {
+            generatePdfFromImages(files);
+        });
+    };
+
+    const handleOnDeleteFileButtonClick = event => {
+        const newImages = images;
+
+        newImages.splice(event.currentTarget.dataset.index, 1);
+
+        setImages([...newImages]);
+    };
+
     return (
         <div>
             {images.length > 0 &&
@@ -117,13 +145,8 @@ function ImageUpload() {
                                 <tr key={`tr${index}`}>
                                     <td>
                                         <button
-                                            onClick={() => {
-                                                const newImages = images;
-
-                                                newImages.splice(index, 1);
-
-                                                setImages([...newImages]);
-                                            }}
+                                            data-index={index}
+                                            onClick={handleOnDeleteFileButtonClick}
                                         >
                                             Excluir
                                         </button>
@@ -143,30 +166,14 @@ function ImageUpload() {
                 style={{
                     display: 'none'
                 }}
-                onChange={event => {
-                    setImages([...images.concat(Array.from(event.target.files))]);
-                }}
+                onChange={handleOnInputFileChange}
             />
-            <button
-                onClick={() => {
-                    getInputFileRef().click();
-                }}
-            >
+            <button onClick={handleOnSelectFilesButtonClick}>
                 Selecionar Arquivos
             </button>
             <button
                 disabled={images.length === 0}
-                onClick={() => {
-                    const readFilesPromises = [];
-
-                    for (let i = 0; i < images.length; i++) {
-                        readFilesPromises.push(readImage(images[i]));
-                    }
-
-                    Promise.all(readFilesPromises).then(files => {
-                        generatePdfFromImages(files);
-                    });
-                }}
+                onClick={handleOnSendFilesButtonClick}
             >
                 Enviar Arquivos
             </button>
